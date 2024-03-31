@@ -28,6 +28,36 @@ uint8_t Z906::LRC(uint8_t* pData, size_t length)
 	return LRC;
 }
 
+void Z906::print_status_buffer()
+{
+	for (int i = 0; i < STATUS_BUFFER_SIZE; i++)
+	{
+		if (status_buffer[i] < 0x10)
+	    Serial.print("0");
+
+		Serial.print(status_buffer[i], HEX);
+		Serial.print(" ");
+	}
+
+	Serial.print("\n");
+}
+
+void Z906::debug_update_status_buffer()
+{
+	update();
+
+	for (int i = 0; i < STATUS_BUFFER_SIZE; i++)
+	{
+		if (status_buffer[i] < 0x10)
+	    Serial.print("0");
+
+		Serial.print(status_buffer[i], HEX);
+		Serial.print(" ");
+	}
+
+	Serial.print("\n");
+}
+
 void Z906::on()
 {
 	write(PWM_ON);
@@ -191,9 +221,11 @@ int Z906::request(uint8_t cmd)
 	if (cmd == VERSION)
 		return status_buffer[STATUS_VER_C] + 10 * status_buffer[STATUS_VER_B] + 100 * status_buffer[STATUS_VER_A];
 
+	//Input value: 1 to 6
 	if (cmd == CURRENT_INPUT)
 		return status_buffer[STATUS_CURRENT_INPUT] + 1;
 
+	//Volume value: 0..43
 	if (cmd == MAIN_LEVEL || cmd == REAR_LEVEL || cmd == CENTER_LEVEL || cmd == SUB_LEVEL)
 		return (uint8_t) status_buffer[cmd];
 
@@ -231,11 +263,9 @@ int Z906::cmd(uint8_t cmd_a, uint8_t cmd_b)
 {
 	update();
 	
-	/*
-	//Normalize volume to 0...255
-	if (cmd_a == MAIN_LEVEL || cmd_a == REAR_LEVEL || cmd_a == CENTER_LEVEL || cmd_a == SUB_LEVEL)
-		cmd_b = (uint8_t) cmd_b;
-	*/
+	//Support volume input range: 0..43 (MAX_VOLUME_VALUE)
+	//if (cmd_a == MAIN_LEVEL || cmd_a == REAR_LEVEL || cmd_a == CENTER_LEVEL || cmd_a == SUB_LEVEL)
+	//	cmd_b = (uint8_t) cmd_b;
 
 	status_buffer[cmd_a] = cmd_b;
 	status_buffer[STATUS_CHECKSUM] = LRC(status_buffer, status_buffer_len);
@@ -245,21 +275,10 @@ int Z906::cmd(uint8_t cmd_a, uint8_t cmd_b)
 	flush(); // Discard ACK message
 }
 
-void Z906::print_status_buffer()
-{
-	for (int i = 0; i < status_buffer_len; i++)
-	{
-		Serial.print(status_buffer[i], HEX);
-		Serial.print(" ");
-	}
-
-	Serial.print("\n");
-}
-
 uint8_t Z906::sensor_temperature()
 {
 	write(GET_TEMP);
-	
+
 	unsigned long startMillis = millis();
 
 	if (hardware_serial)
