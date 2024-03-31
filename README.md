@@ -28,6 +28,10 @@ Full pinout of the original Z906 DE-15 connector is available at the bottom of t
 You'll need a **female** DE-15, also known as DB15 or D-Sub, break-out connector from AliExpress [here](https://a.aliexpress.com/_opPRJE4).
 You may use the shorter version (missing pin 11) if you are not powering your ESP from this connector.
 
+<p align="center"><img src=/images/DE-15.jpg></p>
+
+
+
 # Basic Usage
 
 Instantiate a Z906 object and attach to a Serial instance, you may create multiple Z906 objects.
