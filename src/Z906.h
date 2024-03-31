@@ -18,6 +18,8 @@
 #define SW_SERIAL_CONFIG     SWSERIAL_8O1
 #define SERIAL_TIME_OUT      1000
 #define SERIAL_DEADTIME      5
+#define MAX_VOLUME_VALUE     43            // Z906 works with 0-43 range internally
+#define Z906_DEBUG           true
 
 #define STATUS_BUFFER_SIZE        0x20
 #define ACK_TOTAL_LENGTH          0x05     //Fixed length of an ack message (not used)
@@ -74,6 +76,8 @@
 #define GET_PWR_UP_TIME     0x31
 #define GET_STATUS          0x34
 
+#define GET_STATUS_STBY         0x14
+#define GET_STATUS_AUTO_STBY    0x15
 // MASK
 
 #define EFFECT_3D           0x00			
@@ -112,12 +116,15 @@ public:
    
    uint8_t  sensor_temperature();
 
-   //For debugging write(GET_STATUS) function
+   //For debugging
+   void     debug_update_status_buffer();
    void     print_status_buffer();
 
    void     on();
    void     off();
    void     input(uint8_t, uint8_t = 0xFF);
+
+   void     flush();
 
 private:
 
@@ -150,14 +157,12 @@ private:
    const uint8_t STATUS_AUTO_STBY      = 0x15;
    uint8_t       STATUS_CHECKSUM       = 0;     // Will be dynamically derived in update()
 
-
    SoftwareSerial * software_serial;
    HardwareSerial * hardware_serial;
 
    void     write(uint8_t);
    void     write(uint8_t*, size_t);
 
-   void     flush();
    int      update();
 
    uint8_t  LRC(uint8_t*, size_t);
