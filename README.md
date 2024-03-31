@@ -1,6 +1,6 @@
-# Logitech Z906 with SoftwareSerial
+# Logitech Z906 Control Library with SoftwareSerial
 
-This is a fork & enhanced version of [Logitech Z906 Control Library](https://github.com/zarpli/Logitech-Z906) originally by **zarpli** with a bug fix pull request from [systemofapwne](https://github.com/systemofapwne/Logitech-Z906).
+This is a fork & enhanced version of **Logitech Z906 Control Library** originally by [zarpli](https://github.com/zarpli/Logitech-Z906) with a Pull Request from [systemofapwne](https://github.com/systemofapwne/Logitech-Z906).
 
 On top of these, we have added support for SoftwareSerial & better documentation to support ESP8266 or ESP32 modules.
 
