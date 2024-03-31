@@ -61,12 +61,23 @@ void Z906::flush()
 {
 	//Avoid UART TX collisions
 	delay(SERIAL_DEADTIME);
-	
+
+	//Clear buffer, just to be sure
+	memset(status_buffer, 0, STATUS_BUFFER_SIZE);
+
+	//Read and discard anything left on RX line
 	if (hardware_serial)
-		hardware_serial->flush();			//Clear RX buffer
-	
+		while (hardware_serial->available())
+			hardware_serial->read();
 	if (software_serial)
-		software_serial->flush();			//Clear RX buffer
+		while (software_serial->available())
+			software_serial->read();
+	
+	//Clear RX buffer
+	if (hardware_serial)
+		hardware_serial->flush();
+	if (software_serial)
+		software_serial->flush();
 }
 
 void Z906::write(uint8_t cmd)
