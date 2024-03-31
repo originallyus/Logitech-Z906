@@ -25,11 +25,11 @@ Full pinout of the original Z906 DE-15 connector is available at the bottom of t
 
 # DE-15 Female Connector
 
-You'll need a **female** DE-15, also known as DB15 or D-Sub, break-out connector from AliExpress [here](https://a.aliexpress.com/_opPRJE4).
+You'll need a **female** DE-15, also known as DB-15 or D-Sub or VGA, solderless break-out connector from AliExpress [here](https://a.aliexpress.com/_opPRJE4).
 You may use the shorter version (missing pin 11) if you are not powering your ESP from this connector.
 
 <p align="center"><img src=/images/DE-15.jpg></p>
-
+Note: The plastic case for this connector is too big to fit into the space for console port.
 
 
 # Basic Usage
@@ -105,10 +105,10 @@ LOGI.request(VERSION)       // return firmware version
 
 |argument a|argument b|description|
 |---|---|---|
-|MAIN_LEVEL|0-255|Set Main Level to argument b value|
-|REAR_LEVEL|0-255|Set Rear Level to argument b value|
-|CENTER_LEVEL|0-255|Set Center Level to argument b value|
-|SUB_LEVEL|0-255|Set Sub Level to argument b value|
+|MAIN_LEVEL|0-43|Set Main Level to argument b value|
+|REAR_LEVEL|0-43|Set Rear Level to argument b value|
+|CENTER_LEVEL|0-43|Set Center Level to argument b value|
+|SUB_LEVEL|0-43|Set Sub Level to argument b value|
 
 # EEPROM
 
@@ -121,20 +121,32 @@ return the value of main temperature sensor.
 LOGI.sensor_temperature()
 ```
 
+
 # Turn the amplifier On or Off
 
-Turns the amplifier on or off. When turning off, the amplifier will also store the current state of the unit in EEPROM. Note, that the amplifier still draws a certain amount of power and will only fully turn off, if you also open the connection between pin15 and GND on the DSUB connector.
+Turns the amplifier on or off. When turning off, the amplifier will also store the current state of the unit in EEPROM. Note, that the amplifier still draws a certain amount of power in this stage.
 ```C++
 LOGI.on()
 LOGI.off()
 ```
+To fully turn off the amplifier, you need to break the connection between **Pin 15** and GND on the DE-15 connector.
 
-# Change input
 
-Changes the input and applies the input effect. If no input effect is selected, the device's factory defaults will be used.
+# Select input
+
+Select the input and applies the input effect. If no input effect is selected, the device's factory defaults will be used.
 ```C++
+/*
+input: 1 to 5 & 6 for AUX
+effect:
+SELECT_EFFECT_3D  //Enable 3D Effect in current input
+SELECT_EFFECT_41  //Enable 4.1 Effect in current input
+SELECT_EFFECT_21  //Enable 2.1 Effect in current input
+SELECT_EFFECT_NO  //Disable all Effects in current input
+*/
 LOGI.input(input, effect)
 ```
+
 
 # Basic Example
 
@@ -176,11 +188,14 @@ void setup()
   // Select RCA 2.0 Input
   LOGI.input(SELECT_INPUT_2);
 
+  // Select Optical Input
+  LOGI.input(SELECT_INPUT_4);
+
   // Disable Mute
   LOGI.cmd(MUTE_OFF);
 
-  // Set Main Level to 15 (0 to 255 range)
-  LOGI.cmd(MAIN_LEVEL, 15);
+  // Set Main Level (0 to 43 range)
+  LOGI.cmd(MAIN_LEVEL, 9);
 }
 
 void loop()
@@ -191,11 +206,13 @@ void loop()
 }
 ```
 
+
+
 # DE-15 Z906 Original Console Pinout
 
-This table was taken from [here](https://github.com/nomis/logitech-z906/blob/main/interface.rst) and modified for better clarity.
+This table was taken from [nomis](https://github.com/nomis/logitech-z906/blob/main/interface.rst) and modified for better clarity.
 
-The communication between the Digital Audio Processor and the console is done through TTL serial communication at 3.3V (**NOT** 5V tolerant)
+The communication between the Digital Audio Processor and the console is done through TTL serial communication at 3.3V (**NOT** 5V tolerant).
 
 The following table illustrates the pinout of the DE-15 connector.
 
@@ -206,7 +223,7 @@ The following table illustrates the pinout of the DE-15 connector.
 |   3 | Audio Ground                | Audio Ground                                    |
 |   4 | Aux Right                   |                                                 |
 |   5 | Aux Left                    |                                                 |
-|   6 | Ground                      | Ground                                          |
+|   6 | Logic Ground                | Logic Ground                                    |
 |   7 | Unknown (not required)      | Unknown (not required)                          |
 |   8 | Amplifier presence. Pull-down (0V) resistor     | Output 3.3V for 500ms at power up/comms start. Output 3.3V for 100ms after comms stop   |
 |   9 | Output 3.3V when powered (not required)   |  Unused                           |
@@ -215,4 +232,4 @@ The following table illustrates the pinout of the DE-15 connector.
 |  12 | Console Rx → Amp Tx         | Amp Tx → Console Rx                             |
 |  13 | Console Tx → Amp Rx         | Amp Rx → Console Tx                             |
 |  14 | Unused                      | Unused                                          |
-|  15 | Output 0V if comms active. Connect permanently to GND to enable console | Contains an internal Pull-up (3.3V) resistor. When pulled-down to 0V by console, indicating console is presence  |
+|  15 | Output 0V if comms active. Connect permanently to GND to enable console | Contains an internal pull-up (3.3V) resistor. When pulled-down to 0V by console, indicating console is presence  |
