@@ -7,7 +7,9 @@ On top of these, we have added support for SoftwareSerial & better documentation
 
 # ESP Wiring Diagram
 
-These pins are **NOT** 5V tolerant. If you are using Arduino UNO, MEGA, etc use a **Logic Level Converter** to convert 5V logic signals to 3.3V.
+These pins are **NOT** 5V tolerant.
+
+If you are using Arduino UNO, MEGA, etc... you need to use a **Logic Level Converter** to convert 5V logic signals to 3.3V.
 
 |ESP Pin||DE-15 Pin|Description|
 |---|---|---|---|
@@ -32,11 +34,12 @@ You may use the shorter version (missing pin 11) if you are not powering your ES
 Note: The plastic case for this connector is too big to fit into the space for console port.
 
 
+
 # Basic Usage
 
 Instantiate a Z906 object and attach to a Serial instance, you may create multiple Z906 objects.
 ```C++
-Z906 LOGI(Serial1)
+Z906 LOGI(Serial1);
 
 // OR
 
@@ -45,27 +48,29 @@ Z906 LOGI(mySerial, 5, 4);
 ```
 **cmd** method uses single or double argument, check next tables.
 ```C++
-LOGI.cmd(arg)
-LOGI.cmd(arg_a, arg_b)
+LOGI.cmd(arg);
+LOGI.cmd(arg_a, arg_b);
 ```
 Examples : 
 ```C++
-LOGI.cmd(MUTE_ON)           // Enable Mute
-LOGI.cmd(MAIN_LEVEL, 15)    // Set Main Level to 15 (0 to 255 range)
+LOGI.cmd(MUTE_ON);               // Enable Mute
+LOGI.cmd(MAIN_LEVEL, 9);         // Set Main Level to 9 (0 to 43 range)
 ```
 # Request data
 
 ```C++
-LOGI.request(MAIN_LEVEL)    // return current Main Level
-LOGI.request(REAR_LEVEL)    // return current Rear Level
-LOGI.request(CENTER_LEVEL)  // return current Center Level
-LOGI.request(SUB_LEVEL)     // return current Subwoofer Level
+LOGI.request(VERSION);           // return firmware version
+LOGI.request(CURRENT_INPUT);     // return current input (1-6)
+LOGI.request(MAIN_LEVEL);        // return current Main Level
+LOGI.request(REAR_LEVEL);        // return current Rear Level
+LOGI.request(CENTER_LEVEL);      // return current Center Level
+LOGI.request(SUB_LEVEL);         // return current Subwoofer Level
 
-LOGI.request(STATUS_STBY)   // return stand-by status
-LOGI.request(VERSION)       // return firmware version
+LOGI.request(GET_STATUS_STBY);        // return stand-by status
+LOGI.request(GET_STATUS_AUTO_STBY);   // return auto stand-by status
 ```
 
-# Single argument command
+# Single argument commands
 |argument|description|
 |---|---|
 |SELECT_INPUT_1|Enable TRS 5.1 input|
@@ -84,8 +89,8 @@ LOGI.request(VERSION)       // return firmware version
 |LEVEL_REAR_UP|Increase Rear Level by one unit|
 |LEVEL_REAR_DOWN|Decrease Rear Level by one unit|
 ||
-|PWM_OFF|PWM Generator OFF|
-|PWM_ON|PWM Generator ON|
+|PWM_ON|PWM Generator ON (Turn on Amp)|
+|PWM_OFF|PWM Generator OFF (Turn off Amp)|
 ||
 |SELECT_EFFECT_3D|Enable 3D Effect in current input|
 |SELECT_EFFECT_41|Enable 4.1 Effect in current input|
@@ -101,7 +106,7 @@ LOGI.request(VERSION)       // return firmware version
 |MUTE_ON|Enable Mute|
 |MUTE_OFF|Disable Mute|
 
-# Double argument command
+# Double arguments commands
 
 |argument a|argument b|description|
 |---|---|---|
@@ -118,7 +123,7 @@ Use the **EEPROM_SAVE** function with caution. Each EEPROM has a limited number 
 
 return the value of main temperature sensor.
 ```C++
-LOGI.sensor_temperature()
+uint8_t temperature = LOGI.sensor_temperature();    //Celcius
 ```
 
 
@@ -126,8 +131,8 @@ LOGI.sensor_temperature()
 
 Turns the amplifier on or off. When turning off, the amplifier will also store the current state of the unit in EEPROM. Note, that the amplifier still draws a certain amount of power in this stage.
 ```C++
-LOGI.on()
-LOGI.off()
+LOGI.on();
+LOGI.off();
 ```
 To fully turn off the amplifier, you need to break the connection between **Pin 15** and GND on the DE-15 connector.
 
@@ -144,7 +149,7 @@ SELECT_EFFECT_41  //Enable 4.1 Effect in current input
 SELECT_EFFECT_21  //Enable 2.1 Effect in current input
 SELECT_EFFECT_NO  //Disable all Effects in current input
 */
-LOGI.input(input, effect)
+LOGI.input(input, effect);
 ```
 
 
@@ -201,7 +206,6 @@ void setup()
 void loop()
 {
   Serial.println("Temperature main sensor: " + (String) LOGI.sensor_temperature());
-
   delay(1000);
 }
 ```
@@ -210,7 +214,7 @@ void loop()
 
 # DE-15 Z906 Original Console Pinout
 
-This table was taken from [nomis](https://github.com/nomis/logitech-z906/blob/main/interface.rst) and modified for better clarity.
+This was taken from [nomis](https://github.com/nomis/logitech-z906/blob/main/interface.rst) and modified for better clarity.
 
 The communication between the Digital Audio Processor and the console is done through TTL serial communication at 3.3V (**NOT** 5V tolerant).
 
