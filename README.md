@@ -1,64 +1,43 @@
-# Logitech Z906
-Logitech Z906 Control Library
+# Logitech Z906 with SoftwareSerial
 
-This 5.1 speaker system comes with a "1000 Watts Peak/500 Watts RMS" power for a rich THX Certified surround sound. With the ability to decode Dolby Digital and DTS encoded soundtracks. 
+This is a fork & enhanced version of [Logitech Z906 Control Library](https://github.com/zarpli/Logitech-Z906) originally by **zarpli** with a bug fix pull request from [systemofapwne](https://github.com/systemofapwne/Logitech-Z906).
 
-<p align="center"><img src=/images/logitech_z906.webp></p>
+On top of these, we have added support for SoftwareSerial & better documentation to support ESP8266 or ESP32 modules.
 
-The [Logitech Z906](datasheet/Z906_User_Manual.pdf) is who has six class D amplifiers included, but you cannot use them if you do not have the console connected.
 
-This information is made to be able to control the unit without the need of the console, using any device with a programmable serial port, especially an arduino :)
+# ESP Wiring Diagram
 
-Codenamed "[Liszt](https://www.reddit.com/r/hardwarehacking/comments/up09fu/comment/i8hvcx3/)".
+These pins are **NOT** 5V tolerant. If you are using Arduino UNO, MEGA, etc use a **Logic Level Converter** to convert 5V logic signals to 3.3V.
 
-# Hardware
-
-The main component is a Renesas [D2-71583](datasheet/D2-71583.pdf) intelligent digital amplifier and sound processor.
-
-<p align="center"><img src=/images/D2-71583.jpg></p>
-
-The system requires external firmware to boot the DSP, the [EN25F10A](datasheet/EN25F10A.pdf) serial flash memory has been chosen.
-
-<p align="center"><img src=/images/EN25F10A.jpg></p>
-
-This is the [dump](bin/EN25F10.BIN) data.
-
-# DE-15 Console Connector
-
-The communication between the Digital Audio Processor and the console is done through TTL serial communication at 3.3V.
-
-The following table illustrates the pinout.
-
-|Pin|Description|Pin|Description|
+|ESP Pin||DE-15 Pin|Description|
 |---|---|---|---|
-|3|GND|6|GND|
-|11|3.3V @ 250mA|12|TX|
-|13|RX|15|Console Enable|
+|GND|↔|6|Logic GND|
+|3.3V|↔|11|Supply power to your ESP from Amp|
+|ESP Rx|↔|12|ESP Rx -> Tx of Amp|
+|ESP Tx|↔|13|ESP Tx -> Rx of Amp|
+|GND|↔|15|GND -> Console Enable of Amp|
 
-D2-71583 **NO** is 5V tolerant. If you have Arduino UNO, MEGA, etc use a **Logic Level Converter.**
+<p align="center"><img src=/images/ESP8266_Z906.jpg></p>
 
-|Serial settings||
-|---|---|
-|Baud rate|57600|
-|Data|8 bit|
-|Parity|Odd|
-|Stop|1 bit|
+Full pinout of the original Z906 DE-15 connector is available at the bottom of this README.
 
-Here is the DE-15 male as viewed from the front of the Main Board.
 
-<img src=/images/DE-15-M.jpg width="200">
 
-# Enable Console
+# DE-15 Female Connector
 
-Connect pin 15 to GND.
-
-<p align="center"><img src=/images/Z906-ECON.jpg></p>
+You'll need a **female** DE-15, also known as DB15 or D-Sub, break-out connector from AliExpress [here](https://a.aliexpress.com/_opPRJE4).
+You may use the shorter version (missing pin 11) if you are not powering your ESP from this connector.
 
 # Basic Usage
 
-Instantiate a Z906 object and attach to Serial1, you may create multiple Z906 objects.
+Instantiate a Z906 object and attach to a Serial instance, you may create multiple Z906 objects.
 ```C++
 Z906 LOGI(Serial1)
+
+// OR
+
+SoftwareSerial mySerial;
+Z906 LOGI(mySerial, 5, 4);
 ```
 **cmd** method uses single or double argument, check next tables.
 ```C++
@@ -67,8 +46,8 @@ LOGI.cmd(arg_a, arg_b)
 ```
 Examples : 
 ```C++
-LOGI.cmd(MUTE_ON)         // Enable Mute
-LOGI.cmd(MAIN_LEVEL, 15)  // Set Main Level to 15
+LOGI.cmd(MUTE_ON)           // Enable Mute
+LOGI.cmd(MAIN_LEVEL, 15)    // Set Main Level to 15 (0 to 255 range)
 ```
 # Request data
 
@@ -135,10 +114,10 @@ Use the **EEPROM_SAVE** function with caution. Each EEPROM has a limited number 
 
 return the value of main temperature sensor.
 ```C++
-LOGI.main_sensor()
+LOGI.sensor_temperature()
 ```
 
-# Turn the amplifier  on or off
+# Turn the amplifier On or Off
 
 Turns the amplifier on or off. When turning off, the amplifier will also store the current state of the unit in EEPROM. Note, that the amplifier still draws a certain amount of power and will only fully turn off, if you also open the connection between pin15 and GND on the DSUB connector.
 ```C++
@@ -158,51 +137,78 @@ LOGI.input(input, effect)
 ```C++
 #include <Z906.h>
 
-// Instantiate a Z906 object and Attach to Serial1
-Z906 LOGI(Serial1);
+//We're using ESP8266 Wemos D1 Mini
+#define MY_SW_RX_PIN      5  //D1  //ESP Rx -> Tx of Amp • pin 12 on DE-15 connector
+#define MY_SW_TX_PIN      4  //D2  //ESP Tx -> Rx of Amp • pin 13 on DE-15 connector
 
-void setup(){
+// Instantiate a Z906 object and attach to SoftwareSerial object
+SoftwareSerial mySerial;
+Z906 LOGI(mySerial, MY_SW_RX_PIN, MY_SW_TX_PIN);
 
-Serial.begin(9600);
-while(!Serial);
-
-while(LOGI.request(VERSION) == 0)
+void setup()
 {
-  Serial.println("Waiting Z906 Power-Up");
+  Serial.begin(115200);
+  while(!Serial);
+
+  while(LOGI.request(VERSION) == 0)
+  {
+    Serial.println("Waiting for Z906 to power up...");
+    delay(1000);
+  }
+
+  Serial.println("==================================");
+  Serial.println("Z906 Version : " + (String) LOGI.request(VERSION));
+  Serial.println("Current Input : " + (String) LOGI.request(CURRENT_INPUT));
+  Serial.println("Main Level : " + (String) LOGI.request(MAIN_LEVEL));
+  Serial.println("Rear Level : " + (String) LOGI.request(REAR_LEVEL));
+  Serial.println("Center Level : " + (String) LOGI.request(CENTER_LEVEL));
+  Serial.println("Sub Level : " + (String) LOGI.request(SUB_LEVEL));
+  Serial.println("Temperature sensor: " + (String) LOGI.sensor_temperature());
+  Serial.println("==================================");
+
+  // Power ON the amplifier
+  LOGI.on();
+
+  // Select RCA 2.0 Input
+  LOGI.input(SELECT_INPUT_2);
+
+  // Disable Mute
+  LOGI.cmd(MUTE_OFF);
+
+  // Set Main Level to 15 (0 to 255 range)
+  LOGI.cmd(MAIN_LEVEL, 15);
+}
+
+void loop()
+{
+  Serial.println("Temperature main sensor: " + (String) LOGI.sensor_temperature());
+
   delay(1000);
 }
-
-Serial.println("Z906 Version : " + (String) LOGI.request(VERSION));
-
-// Power ON the amplifier
-LOGI.on();
-
-// Select RCA 2.0 Input
-LOGI.input(SELECT_INPUT_2);
-
-// Disable Mute
-LOGI.cmd(MUTE_OFF);
-
-// Set Main Level to 15;
-LOGI.cmd(MAIN_LEVEL, 15);
-}
-
-void loop(){
-
-Serial.println("Temperature main sensor: " + (String) LOGI.main_sensor());
-
-delay(1000);
-}
 ```
-# Use with Docklight
 
-[Docklight](https://docklight.de/) is a testing, analysis and simulation tool for serial communication protocols.
+# DE-15 Z906 Original Console Pinout
 
-Use the following project to use Z906 unit connected to a PC.
+This table was taken from [here](https://github.com/nomis/logitech-z906/blob/main/interface.rst) and modified for better clarity.
 
-[Z906.ptp](docklight/Z906.ptp)
+The communication between the Digital Audio Processor and the console is done through TTL serial communication at 3.3V (**NOT** 5V tolerant)
 
-<img src=https://raw.githubusercontent.com/zarpli/Logitech-Z906/main/images/docklight.png>
+The following table illustrates the pinout of the DE-15 connector.
 
-# YouTube
-<a href="https://www.youtube.com/watch?v=QVzbw9zAXnw" target="_blank"><img src="http://img.youtube.com/vi/QVzbw9zAXnw/0.jpg" alt="YouTube" width="400" border="10"/></a>
+| Pin | Console                     | Amplifier                                       |
+|-----|-----------------------------|-------------------------------------------------|
+|   1 |                             | Headphones Right                                |
+|   2 |                             | Headphones Left                                 |
+|   3 | Audio Ground                | Audio Ground                                    |
+|   4 | Aux Right                   |                                                 |
+|   5 | Aux Left                    |                                                 |
+|   6 | Ground                      | Ground                                          |
+|   7 | Unknown (not required)      | Unknown (not required)                          |
+|   8 | Amplifier presence. Pull-down (0V) resistor     | Output 3.3V for 500ms at power up/comms start. Output 3.3V for 100ms after comms stop   |
+|   9 | Output 3.3V when powered (not required)   |  Unused                           |
+|  10 | Unknown (not required)      | Unused                                          |
+|  11 | 3.3V Input from Amp         | Supply 3.3V @ 250mA to power the Console        |
+|  12 | Console Rx → Amp Tx         | Amp Tx → Console Rx                             |
+|  13 | Console Tx → Amp Rx         | Amp Rx → Console Tx                             |
+|  14 | Unused                      | Unused                                          |
+|  15 | Output 0V if comms active. Connect permanently to GND to enable console | Contains an internal Pull-up (3.3V) resistor. When pulled-down to 0V by console, indicating console is presence  |

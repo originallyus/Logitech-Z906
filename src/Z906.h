@@ -2,17 +2,26 @@
 #define Z906_H
 
 #include "Arduino.h"
+#include <SoftwareSerial.h>
 
 // Serial Settings
 
-#define BAUD_RATE           57600
-#define SERIAL_CONFIG       SERIAL_8O1
-#define	SERIAL_TIME_OUT     1000
-#define SERIAL_DEADTIME     5
+/*
+   * Requirements for Logitech Z906
+   * Baud rate   57600
+   * Data bit    8 bit
+   * Stop bit    1 bit
+   * Parity      Odd
+*/
+#define BAUD_RATE            57600
+#define SERIAL_CONFIG        SERIAL_8O1
+#define SW_SERIAL_CONFIG     SWSERIAL_8O1
+#define SERIAL_TIME_OUT      1000
+#define SERIAL_DEADTIME      5
 
-#define	STATUS_BUFFER_SIZE  0x20
-#define	ACK_TOTAL_LENGTH    0x05
-#define	TEMP_TOTAL_LENGTH   0x0A
+#define STATUS_BUFFER_SIZE        0x20
+#define ACK_TOTAL_LENGTH          0x05     //Fixed length of an ack message (not used)
+#define TEMPERATURE_MSG_LENGTH    0x0A     //Fixed length of a temperature message
 
 // Single Commands
 
@@ -32,18 +41,18 @@
 #define LEVEL_REAR_UP       0x0E
 #define LEVEL_REAR_DOWN     0x0F
 
-#define	PWM_OFF             0x10
-#define	PWM_ON              0x11
+#define PWM_OFF             0x10
+#define PWM_ON              0x11
 
 #define SELECT_EFFECT_3D    0x14			
 #define SELECT_EFFECT_41    0x15			
 #define SELECT_EFFECT_21    0x16			
 #define SELECT_EFFECT_NO    0x35			
 
-#define	EEPROM_SAVE         0x36
+#define EEPROM_SAVE         0x36
 
-#define	MUTE_ON             0x38
-#define	MUTE_OFF            0x39
+#define MUTE_ON             0x38
+#define MUTE_OFF            0x39
 
 #define BLOCK_INPUTS        0x22
 #define RESET_PWR_UP_TIME   0x30
@@ -79,66 +88,81 @@
 #define SPK_RR              0x02
 #define SPK_RL              0x08
 #define SPK_CENTER          0x04
-#define	SPK_SUB             0x20
+#define SPK_SUB             0x20
 
 class Z906
 {
 public:
 
-Z906(HardwareSerial &serial);
+   Z906(HardwareSerial &serial);
 
-int 	cmd(uint8_t);
-int 	cmd(uint8_t, uint8_t);
-int		request(uint8_t);
-void 	print_status();
+   /*
+     Reference:
+      • https://github.com/zarpli/Logitech-Z906
+      • https://github.com/nomis/logitech-z906/blob/main/interface.rst
+     rxPin: ESP Rx -> Tx of Amp • connect to pin 12 on DB-15 connector
+     txPin: ESP Tx -> Rx of Amp • connect to pin 13 on DB-15 connector
+   */
+   Z906(SoftwareSerial &serial, int8_t rxPin, int8_t txPin);
 
-uint8_t main_sensor();
+   int      cmd(uint8_t);
+   int      cmd(uint8_t, uint8_t);
 
-void    on();
-void    off();
-void    input(uint8_t, uint8_t = 0xFF);
+   int      request(uint8_t);
+   
+   uint8_t  sensor_temperature();
+
+   //For debugging write(GET_STATUS) function
+   void     print_status_buffer();
+
+   void     on();
+   void     off();
+   void     input(uint8_t, uint8_t = 0xFF);
 
 private:
 
-const uint8_t EXP_STX               = 0xAA;
-const uint8_t EXP_MODEL_STATUS      = 0x0A;
-const uint8_t EXP_MODEL_TEMP        = 0x0C;
+   const uint8_t EXP_STX               = 0xAA;     //expect 1st header value
+   const uint8_t EXP_MODEL_STATUS      = 0x0A;     //expect 2nd header byte value
+   const uint8_t EXP_MODEL_TEMPERATURE = 0x0C;     //expect 3rd byte value (index 2) of a temperature message
 
-const uint8_t STATUS_STX            = 0x00;
-const uint8_t STATUS_MODEL          = 0x01;
-const uint8_t STATUS_LENGTH         = 0x02;
-const uint8_t STATUS_MAIN_LEVEL     = 0x03;
-const uint8_t STATUS_REAR_LEVEL     = 0x04;
-const uint8_t STATUS_CENTER_LEVEL   = 0x05;
-const uint8_t STATUS_SUB_LEVEL      = 0x06;
-const uint8_t STATUS_CURRENT_INPUT  = 0x07;
-const uint8_t STATUS_UNKNOWN        = 0x08;
-const uint8_t STATUS_FX_INPUT_4     = 0x09;
-const uint8_t STATUS_FX_INPUT_5     = 0x0A;
-const uint8_t STATUS_FX_INPUT_2     = 0x0B;
-const uint8_t STATUS_FX_INPUT_AUX   = 0x0C;
-const uint8_t STATUS_FX_INPUT_1     = 0x0D;
-const uint8_t STATUS_FX_INPUT_3     = 0x0E;
-const uint8_t STATUS_SPDIF_STATUS   = 0x0F;
-const uint8_t STATUS_SIGNAL_STATUS  = 0x10;
-const uint8_t STATUS_VER_A          = 0x11;
-const uint8_t STATUS_VER_B          = 0x12;
-const uint8_t STATUS_VER_C          = 0x13;
-const uint8_t STATUS_STBY           = 0x14;
-const uint8_t STATUS_AUTO_STBY      = 0x15;
-uint8_t       STATUS_CHECKSUM       = 0;    // Will be dynamically derived in update()
+   //Indexes of various bytes in message
+   const uint8_t STATUS_STX            = 0x00;
+   const uint8_t STATUS_MODEL          = 0x01;
+   const uint8_t STATUS_LENGTH_INDEX   = 0x02;     //index of payload length byte
+   const uint8_t STATUS_MAIN_LEVEL     = 0x03;
+   const uint8_t STATUS_REAR_LEVEL     = 0x04;
+   const uint8_t STATUS_CENTER_LEVEL   = 0x05;
+   const uint8_t STATUS_SUB_LEVEL      = 0x06;
+   const uint8_t STATUS_CURRENT_INPUT  = 0x07;
+   const uint8_t STATUS_UNKNOWN        = 0x08;
+   const uint8_t STATUS_FX_INPUT_4     = 0x09;
+   const uint8_t STATUS_FX_INPUT_5     = 0x0A;
+   const uint8_t STATUS_FX_INPUT_2     = 0x0B;
+   const uint8_t STATUS_FX_INPUT_AUX   = 0x0C;
+   const uint8_t STATUS_FX_INPUT_1     = 0x0D;
+   const uint8_t STATUS_FX_INPUT_3     = 0x0E;
+   const uint8_t STATUS_SPDIF_STATUS   = 0x0F;
+   const uint8_t STATUS_SIGNAL_STATUS  = 0x10;
+   const uint8_t STATUS_VER_A          = 0x11;
+   const uint8_t STATUS_VER_B          = 0x12;
+   const uint8_t STATUS_VER_C          = 0x13;
+   const uint8_t STATUS_STBY           = 0x14;
+   const uint8_t STATUS_AUTO_STBY      = 0x15;
+   uint8_t       STATUS_CHECKSUM       = 0;     // Will be dynamically derived in update()
 
-const uint8_t MAX_VOL               = 43;   // Maximum volume can only be 43
 
-HardwareSerial* dev_serial;
+   SoftwareSerial * software_serial;
+   HardwareSerial * hardware_serial;
 
-void    write(uint8_t);
-void    write(uint8_t*, size_t);
-void    flush();
-int 	update();
-uint8_t LRC(uint8_t*, size_t);
-uint8_t status[STATUS_BUFFER_SIZE];
-size_t  status_len = 0; //Size of the full message in the status buffer (incl. control words and checksum)
+   void     write(uint8_t);
+   void     write(uint8_t*, size_t);
+
+   void     flush();
+   int      update();
+
+   uint8_t  LRC(uint8_t*, size_t);
+   uint8_t  status_buffer[STATUS_BUFFER_SIZE];
+   size_t   status_buffer_len = 0; 					//Size of the full message in the status buffer (incl. control words and checksum)
 };
 
 #endif // Z906_H
