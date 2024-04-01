@@ -39,7 +39,7 @@ void setup()
   while (LOGI.request(VERSION) == 0)
   {
     Serial.println("Waiting for Z906 to power up...");
-    delay(1000);
+    delay(100);
   }
 
   Serial.println("");
@@ -66,8 +66,6 @@ void setup()
   Serial.println("Power ON");
   LOGI.on();
 
-  delay(10);
-
   //------------
 
   Serial.println("Select Input...");
@@ -81,8 +79,6 @@ void setup()
   // Select AUX Input
   //LOGI.input(SELECT_INPUT_AUX);
 
-  delay(10);
-
   //------------
   
   Serial.println("Disable Mute...");
@@ -90,50 +86,37 @@ void setup()
   // Disable Mute
   LOGI.cmd(MUTE_OFF);
 
-  delay(10);
-
   //------------
 
-  uint8_t volume = 30;
+  uint8_t volume = 11;
   
-  Serial.println("Set volume: " + String(volume) + " / 255");
+  Serial.println("Set volume: " + String(volume));
 
-  // Set Main Volume: 1 - 255
+  // Set Main Level (0 to 43 range)
   LOGI.cmd(MAIN_LEVEL, volume);
-
-  delay(1000);
 }
 
 void loop()
 {
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
+  //If communication failed, simply wait and try again
+  while (LOGI.request(VERSION) == 0) {
+    delay(50);
+  }
 
-  LOGI.update();
-  LOGI.print_status_buffer();
+  //This is a more efficient way to retrieve all statuses
+  //All status has been internally retrieved at once by LOGI.request(VERSION) above, we only need to read from buffer
+  Serial.println("Z906 Version : " + (String) LOGI.read_from_buffer(VERSION));
+  Serial.println("Current Input : " + (String) LOGI.read_from_buffer(CURRENT_INPUT));
+  Serial.println("Standby Status : " + (String) LOGI.read_from_buffer(GET_STATUS_STBY));
+  Serial.println("Auto Standby Status : " + (String) LOGI.read_from_buffer(GET_STATUS_AUTO_STBY));
+  Serial.println("Main Level : " + (String) LOGI.read_from_buffer(MAIN_LEVEL));
+  Serial.println("Rear Level : " + (String) LOGI.read_from_buffer(REAR_LEVEL));
+  Serial.println("Center Level : " + (String) LOGI.read_from_buffer(CENTER_LEVEL));
+  Serial.println("Sub Level : " + (String) LOGI.read_from_buffer(SUB_LEVEL));
 
-  Serial.println("Temperature main sensor: " + (String) LOGI.sensor_temperature());
+  //Temperature update requires a separate function call
+  Serial.println("Temperature sensor: " + (String) LOGI.sensor_temperature());
 
-  delay(1000);
-
-  Serial.println("Current Input : " + (String) LOGI.request(CURRENT_INPUT));
-
-  delay(1000);
-  
-  Serial.println("Main Level : " + (String) LOGI.request(MAIN_LEVEL));
-
-  delay(1000);
-  
-  Serial.println("Rear Level : " + (String) LOGI.request(REAR_LEVEL));
-
-  delay(1000);
-  
-  Serial.println("Center Level : " + (String) LOGI.request(CENTER_LEVEL));
-
-  delay(1000);
-  
-  Serial.println("Sub Level : " + (String) LOGI.request(SUB_LEVEL));
-
-  delay(5000);
+  //Optional
+  delay(3000);
 }

@@ -1,15 +1,23 @@
 # Logitech Z906 Control Library with SoftwareSerial
 
-This is a fork & enhanced version of **Logitech Z906 Control Library** originally by [zarpli](https://github.com/zarpli/Logitech-Z906) with a Pull Request from [systemofapwne](https://github.com/systemofapwne/Logitech-Z906).
+This is fully remastered version of **Logitech Z906 Control Library** originally developed by [zarpli](https://github.com/zarpli/Logitech-Z906) with a Pull Request from [systemofapwne](https://github.com/systemofapwne/Logitech-Z906).
 
-On top of these, we have added support for SoftwareSerial & better documentation to support ESP8266 or ESP32 modules.
+We have completely re-written the library with the following changes:
+- Support for **SoftwareSerial** is added
+- More robust serial communication code, locking on 0xAA header & actual payload length
+- No more issue with extra un-read bytes
+- Public function to efficiently read multiple statuses after 1 ***update()***
+- Fully support ESP8266 and ESP32 modules
+- Comprehensive documentation consolidated from various sources
+- Function prototypes are backward compatible with **zarpli** or **systemofapwne** versions.
+
 
 
 # ESP Wiring Diagram
 
 These pins are **NOT** 5V tolerant.
 
-If you are using Arduino UNO, MEGA, etc... you need to use a **Logic Level Converter** to convert 5V logic signals to 3.3V.
+If you are using 5V Arduino UNO, MEGA, etc... you need to use a **Logic Level Converter** to convert 5V logic signals to 3.3V.
 
 |ESP Pin||DE-15 Pin|Description|
 |---|---|---|---|
@@ -19,7 +27,12 @@ If you are using Arduino UNO, MEGA, etc... you need to use a **Logic Level Conve
 |ESP Tx|↔|13|ESP Tx -> Rx of Amp|
 |GND|↔|15|GND -> Console Enable of Amp|
 
-<p align="center"><img src=/images/ESP8266_Z906.jpg></p>
+*Standalone dongle, using 3.3V supply from Amp (Pin 11)*
+![](/images/ESP8266_Z906_standalone.jpg)
+
+*This configuration with USB Power was used during development*
+![](/images/ESP8266_Z906.jpg)
+
 
 Full pinout of the original Z906 DE-15 connector is available at the bottom of this README.
 
@@ -32,6 +45,7 @@ You may use the shorter version (missing pin 11) if you are not powering your ES
 
 <p align="center"><img src=/images/DE-15.jpg></p>
 Note: The plastic case for this connector is too big to fit into the space for console port.
+
 
 
 
@@ -121,7 +135,7 @@ Use the **EEPROM_SAVE** function with caution. Each EEPROM has a limited number 
 
 # Get Temperature
 
-return the value of main temperature sensor.
+return the value of main temperature sensor in degree Celcious unit.
 ```C++
 uint8_t temperature = LOGI.sensor_temperature();    //Celcius
 ```
@@ -142,7 +156,13 @@ To fully turn off the amplifier, you need to break the connection between **Pin 
 Select the input and applies the input effect. If no input effect is selected, the device's factory defaults will be used.
 ```C++
 /*
-input: 1 to 5 & 6 for AUX
+input: 
+SELECT_INPUT_1    //Enable TRS 5.1 input
+SELECT_INPUT_2    //Enable RCA 2.0 input
+SELECT_INPUT_3    //Enable Optical 1 input
+SELECT_INPUT_4    //Enable Optical 2 input
+SELECT_INPUT_5    //Enable Coaxial input
+SELECT_INPUT_AUX  //Enable TRS 2.0 (console) input
 effect:
 SELECT_EFFECT_3D  //Enable 3D Effect in current input
 SELECT_EFFECT_41  //Enable 4.1 Effect in current input
@@ -194,7 +214,7 @@ void setup()
   LOGI.input(SELECT_INPUT_2);
 
   // Select Optical Input
-  LOGI.input(SELECT_INPUT_4);
+  //LOGI.input(SELECT_INPUT_4);
 
   // Disable Mute
   LOGI.cmd(MUTE_OFF);
@@ -205,7 +225,7 @@ void setup()
 
 void loop()
 {
-  Serial.println("Temperature main sensor: " + (String) LOGI.sensor_temperature());
+  Serial.println("Temperature sensor: " + (String) LOGI.sensor_temperature());
   delay(1000);
 }
 ```

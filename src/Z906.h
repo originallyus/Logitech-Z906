@@ -19,9 +19,9 @@
 #define SERIAL_TIME_OUT      1000
 #define SERIAL_DEADTIME      5
 #define MAX_VOLUME_VALUE     43            // Z906 works with 0-43 range internally
-#define Z906_DEBUG           true
+#define Z906_DEBUG           false
 
-#define STATUS_BUFFER_SIZE        0x20
+#define MSG_BUFFER_SIZE           0x20
 #define ACK_TOTAL_LENGTH          0x05     //Fixed length of an ack message (not used)
 #define TEMPERATURE_MSG_LENGTH    0x0A     //Fixed length of a temperature message
 
@@ -78,6 +78,7 @@
 
 #define GET_STATUS_STBY         0x14
 #define GET_STATUS_AUTO_STBY    0x15
+
 // MASK
 
 #define EFFECT_3D           0x00			
@@ -109,37 +110,44 @@ public:
    */
    Z906(SoftwareSerial &serial, int8_t rxPin, int8_t txPin);
 
+   //For debugging
+   void     debug_update_msg_buffer();
+   void     print_msg_buffer();
+
+   //Make sure our comm line & buffer is clear
+   void     flush();
+
+   //Wrapper functions for sending commands
    int      cmd(uint8_t);
    int      cmd(uint8_t, uint8_t);
-
-   int      request(uint8_t);
    
-   uint8_t  sensor_temperature();
+   //Read latest value from buffer (to be used after an 'update' function call)
+   int      read_from_buffer(uint8_t);
 
-   //For debugging
-   void     debug_update_status_buffer();
-   void     print_status_buffer();
+   //A dedicated function for reading temperature sensor
+   uint8_t  sensor_temperature();
 
    void     on();
    void     off();
+   int      request(uint8_t);
    void     input(uint8_t, uint8_t = 0xFF);
-
-   void     flush();
 
 private:
 
-   const uint8_t EXP_STX               = 0xAA;     //expect 1st header value
-   const uint8_t EXP_MODEL_STATUS      = 0x0A;     //expect 2nd header byte value
-   const uint8_t EXP_MODEL_TEMPERATURE = 0x0C;     //expect 3rd byte value (index 2) of a temperature message
+   const static uint8_t EXP_HEADER_1ST_VALUE  = 0xAA;             //expect 1st header value for all messages
+   const static uint8_t EXP_HEADER_2ND_VALUE  = 0x0A;             //expect 2nd header value for status message
+   const static uint8_t EXP_HEADER_TEMPERATURE_2ND_VALUE = 0x0C;  //expect 2nd header value for temperature message
 
    //Indexes of various bytes in message
-   const uint8_t STATUS_STX            = 0x00;
-   const uint8_t STATUS_MODEL          = 0x01;
-   const uint8_t STATUS_LENGTH_INDEX   = 0x02;     //index of payload length byte
+   const uint8_t HEADER_1ST_INDEX      = 0x00;        //first header byte
+   const uint8_t HEADER_2ND_INDEX      = 0x01;
+   const uint8_t PAYLOAD_LENGTH_INDEX  = 0x02;        //index of payload length byte
+
    const uint8_t STATUS_MAIN_LEVEL     = 0x03;
    const uint8_t STATUS_REAR_LEVEL     = 0x04;
    const uint8_t STATUS_CENTER_LEVEL   = 0x05;
    const uint8_t STATUS_SUB_LEVEL      = 0x06;
+   const uint8_t TEMPERATURE_BYTE_IDX  = 0x06;       //for temperature message only
    const uint8_t STATUS_CURRENT_INPUT  = 0x07;
    const uint8_t STATUS_UNKNOWN        = 0x08;
    const uint8_t STATUS_FX_INPUT_4     = 0x09;
@@ -148,26 +156,31 @@ private:
    const uint8_t STATUS_FX_INPUT_AUX   = 0x0C;
    const uint8_t STATUS_FX_INPUT_1     = 0x0D;
    const uint8_t STATUS_FX_INPUT_3     = 0x0E;
-   const uint8_t STATUS_SPDIF_STATUS   = 0x0F;
-   const uint8_t STATUS_SIGNAL_STATUS  = 0x10;
+   const uint8_t STATUS_SPDIF_STATUS   = 0x0F;     //?
+   const uint8_t STATUS_SIGNAL_STATUS  = 0x10;     //?
    const uint8_t STATUS_VER_A          = 0x11;
    const uint8_t STATUS_VER_B          = 0x12;
    const uint8_t STATUS_VER_C          = 0x13;
    const uint8_t STATUS_STBY           = 0x14;
    const uint8_t STATUS_AUTO_STBY      = 0x15;
-   uint8_t       STATUS_CHECKSUM       = 0;     // Will be dynamically derived in update()
-
+   
    SoftwareSerial * software_serial;
    HardwareSerial * hardware_serial;
+
+   //Checksum function
+   uint8_t  LRC(uint8_t*, size_t);
 
    void     write(uint8_t);
    void     write(uint8_t*, size_t);
 
-   int      update();
+   //Use GET_STATUS command to retrieve all status at once
+   int      update(uint8_t = GET_STATUS, uint8_t = EXP_HEADER_1ST_VALUE, uint8_t = EXP_HEADER_2ND_VALUE);
 
-   uint8_t  LRC(uint8_t*, size_t);
-   uint8_t  status_buffer[STATUS_BUFFER_SIZE];
-   size_t   status_buffer_len = 0; 					//Size of the full message in the status buffer (incl. control words and checksum)
+   uint8_t  msg_buffer[MSG_BUFFER_SIZE];
+
+   //Shared variables between update() and cmd(cmd_a, cmd_b) functions
+   size_t msg_buffer_len;   
+   size_t checksum_byte_index;
 };
 
 #endif // Z906_H
