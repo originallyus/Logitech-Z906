@@ -32,15 +32,9 @@ Z906::Z906(SoftwareSerial &serial, int8_t rxPin, int8_t txPin)
 void Z906::print_msg_buffer()
 {
 	for (int i = 0; i < MSG_BUFFER_SIZE; i++)
-	{
-		if (msg_buffer[i] < 0x10)
-			Serial.print("0");
+		Serial.printf(" %02X", msg_buffer[i]);
 
-		Serial.print(msg_buffer[i], HEX);
-		Serial.print(" ");
-	}
-
-	Serial.print("\n");
+	Serial.println("");
 }
 
 void Z906::debug_update_msg_buffer()
@@ -48,15 +42,9 @@ void Z906::debug_update_msg_buffer()
 	update();
 
 	for (int i = 0; i < MSG_BUFFER_SIZE; i++)
-	{
-		if (msg_buffer[i] < 0x10)
-			Serial.print("0");
+		Serial.printf(" %02X", msg_buffer[i]);
 
-		Serial.print(msg_buffer[i], HEX);
-		Serial.print(" ");
-	}
-
-	Serial.print("\n");
+	Serial.println("");
 }
 
 
@@ -198,10 +186,11 @@ int Z906::cmd(uint8_t cmd_a, uint8_t cmd_b)
 int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 {
 	if (Z906_DEBUG) {
-		Serial.print("Sending cmd: 0x");
-		if (exp_1st_header < 0x10)	Serial.print("0");
-		Serial.print(cmd, HEX);
-		Serial.println("");
+		Serial.printf("Sending cmd: 0x%02X\n", cmd);
+		//Serial.print("Sending cmd: 0x");
+		//if (exp_1st_header < 0x10)	Serial.print("0");
+		//Serial.print(cmd, HEX);
+		//Serial.println("");
 	}
 
 	//default: GET_STATUS
@@ -240,11 +229,8 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 	//Failed to detect 1st header after too many loop
 	if (msg_buffer[HEADER_1ST_INDEX] != exp_1st_header) {
 		if (Z906_DEBUG) {
-			Serial.println("Num bytes read: " + (String)loop_count);
-			Serial.print("Failed to lock on to header byte: 0x");
-			if (exp_1st_header < 0x10)	Serial.print("0");
-			Serial.print(exp_1st_header, HEX);
-			Serial.println("");
+			Serial.printf("Num bytes read: %d\n", loop_count);
+			Serial.printf("Failed to lock on to header byte: 0x%02X\n", exp_1st_header);
 			print_msg_buffer();
 		}
 		return 0;
@@ -273,8 +259,8 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 	//Sanity check
 	if (payload_len >= MSG_BUFFER_SIZE) {
 		if (Z906_DEBUG) {
-			Serial.println("Num bytes read: " + (String)i);
-			Serial.println("Invalid payload len: " + (String)payload_len);
+			Serial.printf("Num bytes read: %d\n", i);
+			Serial.printf("Invalid payload len: %d\n", payload_len);
 			print_msg_buffer();
 		}
 		return 0;
@@ -291,8 +277,8 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 	//Sanity check
 	if (checksum_byte_index >= MSG_BUFFER_SIZE) {
 		if (Z906_DEBUG) {
-			Serial.println("Num bytes read: " + (String)i);
-			Serial.println("Invalid checksum_byte_index: " + (String)checksum_byte_index);
+			Serial.printf("Num bytes read: %d\n", i);
+			Serial.printf("Invalid checksum_byte_index: %d\n", checksum_byte_index);
 			print_msg_buffer();
 		}
 		return 0;
@@ -303,7 +289,7 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 		while (i <= checksum_byte_index && i < MSG_BUFFER_SIZE) {
 			if (millis() - startMillis > SERIAL_TIME_OUT) {
 				if (Z906_DEBUG) {
-					Serial.println("Num bytes read: " + (String)i);
+					Serial.printf("Num bytes read: %d\n", i);
 					Serial.println("Serial timeout");
 					print_msg_buffer();
 				}
@@ -317,7 +303,7 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 		while (i <= checksum_byte_index && i < MSG_BUFFER_SIZE) {
 			if (millis() - startMillis > SERIAL_TIME_OUT) {
 				if (Z906_DEBUG) {
-					Serial.println("Num bytes read: " + (String)i);
+					Serial.printf("Num bytes read: %d\n", i);
 					Serial.println("Serial timeout");
 					print_msg_buffer();
 				}
@@ -330,22 +316,16 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 	//Verify header bytes
 	if (msg_buffer[HEADER_1ST_INDEX] != exp_1st_header) {
 		if (Z906_DEBUG) {
-			Serial.println("Num bytes read: " + (String)i);
-			Serial.print("Wrong HEADER_1ST_INDEX header byte (1st byte). Expecting: 0x");
-			if (exp_1st_header < 0x10)	Serial.print("0");
-			Serial.print(exp_1st_header, HEX);
-			Serial.println("");
+			Serial.printf("Num bytes read: %d\n", i);
+			Serial.printf("Wrong HEADER_1ST_INDEX header byte (1st byte). Expecting: 0x%02X\n", exp_1st_header);
 			print_msg_buffer();
 		}
 		return 0;
 	}
 	if (msg_buffer[HEADER_2ND_INDEX] != exp_2nd_header) {
 		if (Z906_DEBUG) {
-			Serial.println("Num bytes read: " + (String)i);
-			Serial.println("Wrong HEADER_2ND_INDEX header byte (2nd byte). Expecting: 0x");
-			if (exp_2nd_header < 0x10)	Serial.print("0");
-			Serial.print(exp_2nd_header, HEX);
-			Serial.println("");
+			Serial.printf("Num bytes read: %d\n", i);
+			Serial.printf("Wrong HEADER_2ND_INDEX header byte (2nd byte). Expecting: 0x%02X\n", exp_2nd_header);
 			print_msg_buffer();
 		}
 		return 0;
@@ -354,7 +334,7 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 	//Verify checksum byte
 	if (msg_buffer[checksum_byte_index] != LRC(msg_buffer, msg_buffer_len)) {
 		if (Z906_DEBUG) {
-			Serial.println("Num bytes read: " + (String)i);
+			Serial.printf("Num bytes read: %d\n", i);
 			Serial.println("Wrong package checksum");
 			print_msg_buffer();
 		}
@@ -364,10 +344,7 @@ int Z906::update(uint8_t cmd, uint8_t exp_1st_header, uint8_t exp_2nd_header)
 	//All good
 
 	if (Z906_DEBUG) {
-		Serial.print("cmd OK: 0x");
-		if (exp_1st_header < 0x10)	Serial.print("0");		
-		Serial.print(cmd, HEX);
-		Serial.println(" • payload len: " + String(payload_len));
+		Serial.printf("cmd OK: 0x%02X • payload len: %d\n", exp_1st_header, payload_len);
 	}
 
 	return 1;
@@ -381,6 +358,20 @@ int Z906::read_from_buffer(uint8_t cmd)
 	//Input value: 1 to 6
 	if (cmd == CURRENT_INPUT)
 		return msg_buffer[STATUS_CURRENT_INPUT] + 1;
+	
+	//Input value: 1 to 6
+	if (cmd == CURRENT_EFFECT) {
+		uint8_t current_input = msg_buffer[STATUS_CURRENT_INPUT] + 1;
+		switch (current_input) {
+			case 1:	return (uint8_t) msg_buffer[STATUS_FX_INPUT_1];		break;
+			case 2:	return (uint8_t) msg_buffer[STATUS_FX_INPUT_2];		break;
+			case 3:	return (uint8_t) msg_buffer[STATUS_FX_INPUT_3];		break;
+			case 4:	return (uint8_t) msg_buffer[STATUS_FX_INPUT_4];		break;
+			case 5:	return (uint8_t) msg_buffer[STATUS_FX_INPUT_5];		break;
+			case 6:	return (uint8_t) msg_buffer[STATUS_FX_INPUT_AUX];	break;
+		}
+		return 0;
+	}
 
 	//Volume value: 0..43
 	if (cmd == MAIN_LEVEL || cmd == REAR_LEVEL || cmd == CENTER_LEVEL || cmd == SUB_LEVEL)
@@ -431,6 +422,13 @@ void Z906::off()
 	flush();	// Discard ACK
 }
 
+void Z906::save()
+{
+	write(EEPROM_SAVE);
+
+	flush();	// Discard ACK
+}
+
 int Z906::request(uint8_t cmd)
 {
 	if (!update())
@@ -442,24 +440,40 @@ int Z906::request(uint8_t cmd)
 	//flush();	// Discard ACK
 }
 
-void Z906::input(uint8_t input, uint8_t effect)
+void Z906::input(uint8_t input)
 {
 	//Sanity check
 	if (input < SELECT_INPUT_1 || input > SELECT_INPUT_AUX) {
-		Serial.println("Invalid 'input' params: " + (String)input);
+		Serial.printf("Invalid 'input' params: %d\n", input);
 		return;
 	}
 
-	// If no effect is select, use default (same as console default)
-	if (effect = 0xFF)
-		if (input == SELECT_INPUT_2 || input == SELECT_INPUT_AUX){
-			effect = SELECT_EFFECT_3D;
-		} else {
-			effect = SELECT_EFFECT_NO;
-		}
+	write(input);
 
-	uint8_t cmd[] = { MUTE_ON, input, effect, MUTE_OFF };
-	write(cmd, sizeof(cmd));
+	flush();	// Discard ACK
+}
+
+/*
+	Following these order
+	#define EFFECT_3D           0x00
+	#define EFFECT_21           0x01
+	#define EFFECT_41           0x02
+	#define EFFECT_NO           0x03
+*/
+void Z906::effect(uint8_t effect)
+{
+	if (effect == EFFECT_3D || effect == 0xFF || effect == SELECT_EFFECT_NO)
+		effect = SELECT_EFFECT_3D;
+	else if (effect == EFFECT_21 || effect == SELECT_EFFECT_21)
+		effect = SELECT_EFFECT_21;
+	else if (effect == EFFECT_41 || effect == SELECT_EFFECT_41)
+		effect = SELECT_EFFECT_41;
+	else if (effect == EFFECT_NO || effect == SELECT_EFFECT_NO)
+		effect = SELECT_EFFECT_NO;
+	else
+		return;		//invalid value
+
+	write(effect);
 
 	flush();	// Discard ACK
 }

@@ -46,10 +46,10 @@
 #define PWM_OFF             0x10
 #define PWM_ON              0x11
 
-#define SELECT_EFFECT_3D    0x14			
-#define SELECT_EFFECT_41    0x15			
-#define SELECT_EFFECT_21    0x16			
-#define SELECT_EFFECT_NO    0x35			
+#define SELECT_EFFECT_3D    0x14    //1 • 3D Effect
+#define SELECT_EFFECT_41    0x15    //2 • 4.1 Effect
+#define SELECT_EFFECT_21    0x16    //3 • 2.1 Effect
+#define SELECT_EFFECT_NO    0x35    //0 • No effect
 
 #define EEPROM_SAVE         0x36
 
@@ -71,6 +71,7 @@
 
 #define VERSION             0xF0
 #define CURRENT_INPUT       0xF1
+#define CURRENT_EFFECT      0xF2
 #define GET_INPUT_GAIN      0x2F
 #define GET_TEMP            0x25
 #define GET_PWR_UP_TIME     0x31
@@ -129,8 +130,16 @@ public:
 
    void     on();
    void     off();
+   void     save();
    int      request(uint8_t);
-   void     input(uint8_t, uint8_t = 0xFF);
+   void     input(uint8_t);
+
+   //A dedicated function for selecting effect for current input
+   // 0 or EFFECT_3D or SELECT_EFFECT_3D • 3D Effect
+   // 1 or EFFECT_21 or SELECT_EFFECT_21 • 2.1 Effect
+   // 2 or EFFECT_41 or SELECT_EFFECT_41 • 4.1 Effect
+   // 3 or EFFECT_3D or SELECT_EFFECT_NO • No effect
+   void     effect(uint8_t);
 
 private:
 
@@ -179,8 +188,8 @@ private:
    uint8_t  msg_buffer[MSG_BUFFER_SIZE];
 
    //Shared variables between update() and cmd(cmd_a, cmd_b) functions
-   size_t msg_buffer_len;   
-   size_t checksum_byte_index;
+   size_t   msg_buffer_len;   
+   size_t   checksum_byte_index;
 };
 
 #endif // Z906_H
